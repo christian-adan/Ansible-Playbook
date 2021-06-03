@@ -1,0 +1,110 @@
+version: "3.9"
+services:
+
+# Configuración de Gitlab
+#  gitlab:
+#    image: gitlab/gitlab-ce:latest
+#    environment:
+#      GITLAB_OMNIBUS_CONFIG: |
+#        gitlab_rails['gitlab_shell_ssh_port'] = 2224
+#        nginx['redirect_http_to_https'] = false
+#    ports:
+#      - '80:80'
+#      - '443:443'
+#      - '2224:22'
+#    volumes:
+#      - /mnt/gitlab-config:/etc/gitlab
+#      - /mnt/gitlab-logs:/var/log/gitlab
+#      - /mnt/gitlab-data:/var/opt/gitlab
+#    networks:
+#      - net
+
+# Configuración de Jenkins
+  jenkins:
+    image: jenkins/jenkins:2.277.4-lts-alpine
+    user: root
+    ports:
+      - 8080:8080
+      - 50000:50000
+    volumes:
+      - jenkins:/var/jenkins_home
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - /usr/bin/docker:/usr/bin/docker
+    networks:
+      - net
+
+# Configuración de Docker Registry
+  registry:
+    image: registry:latest
+    ports:
+    - 5000:5000
+    environment:
+      REGISTRY_AUTH: htpasswd
+      REGISTRY_AUTH_HTPASSWD_REALM: Registry Realm
+      REGISTRY_AUTH_HTPASSWD_PATH: /auth/htpasswd
+    volumes:
+      - /data/brick1/gv0/registry-auth:/auth
+      - /data/brick1/gv0/registry-data:/var/lib/registry
+    networks:
+      - net
+
+# Configuración de Swarmpit
+  app:
+    image: swarmpit/swarmpit:latest
+    environment:
+      - SWARMPIT_DB=http://db:5984
+      - SWARMPIT_INFLUXDB=http://influxdb:8086
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+    ports:
+      - 888:8080
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080"]
+      interval: 60s
+      timeout: 10s
+      retries: 3
+    networks:
+      - net
+    deploy:
+      placement:
+        constraints:
+          - node.role == manager
+    depends_on:
+      - db
+      - influxdb
+
+# Configuración de Couchdb
+  db:
+    image: couchdb:2.3.0
+    volumes:
+      -  /data/brick1/gv0/db-data:/opt/couchdb/data
+    networks:
+      - net
+
+# Configuración de Influx
+  influxdb:
+    image: influxdb:1.7
+    volumes:
+      -  /data/brick1/gv0/influx-data:/var/lib/influxdb
+    networks:
+      - net
+
+# Configuración del Swarmpit agent
+  agent:
+    image: swarmpit/agent:2.2
+    environment:
+      - DOCKER_API_VERSION=1.35
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+    networks:
+      - net
+    deploy:
+      mode: global
+    labels:
+        swarmpit.agent: 'true'
+    
+
+# Redes
+networks:
+  net:
+    driver: overlay

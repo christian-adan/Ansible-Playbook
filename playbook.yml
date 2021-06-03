@@ -1,0 +1,105 @@
+---
+# - hosts: 10.0.2.15
+#   tasks:
+#     - name: Cambiar hostname - Manager
+#       hostname:
+#         name: manager
+
+# - hosts: 10.0.2.16
+#   tasks:
+#     - name: Cambiar hostname - Worker1
+#       hostname:
+#         name: worker1
+
+# - hosts: 10.0.2.17
+#   tasks:
+#     - name: Cambiar hostname - Worker2
+#       hostname:
+#         name: worker2
+
+# - hosts: all
+#   tasks: 
+#     - name: Editar fichero /etc/hosts
+#       shell: sed -i '/'$(hostname)'/c 10.0.2.15 manager\n10.0.2.16 worker1\n10.0.2.17 worker2' /etc/hosts
+    
+#     - name: Instalar dependencias
+#       become: yes
+#       apt: 
+#         name:
+#           - apt-transport-https
+#           - ca-certificates
+#           - software-properties-common
+#           - glusterfs-server
+#         state: latest 
+#         update_cache: true
+
+#     - name: Añadir clave GPG de Docker
+#       apt_key:
+#         url: https://download.docker.com/linux/ubuntu/gpg
+#         state: present
+
+#     - name: Añadir repositorio de Docker
+#       apt_repository:
+#         repo: deb https://download.docker.com/linux/ubuntu bionic stable
+#         state: present
+
+#     - name: Actualizar repositorios e instalar Docker
+#       apt: update_cache=yes name=docker-ce state=latest
+
+#     - name: Iniciar servicio de Docker
+#       service:
+#         name: docker
+#         state: started
+#         enabled: yes
+ 
+#     - name: Formatear disco
+#       shell: mkfs.xfs /dev/sdb 
+       
+#     - name: Crear carpeta para el volumen
+#       shell: mkdir -p data/brick/gv0
+
+#     - name: Editar fichero /etc/fstab
+#       shell: echo '/dev/sdb /data/brick xfs defaults 0 0' >> /etc/fstab
+
+#     - name: Montar el volumen  
+#       shell: mount –a && mount 
+       
+#     - name: Iniciar servicio de Gluster
+#       service:
+#         name: glusterd
+#         state: started
+#         enabled: yes
+
+- hosts: 10.0.2.15
+  tasks:
+#     - name: Conectar nodos de GlusterFS
+#       shell: gluster peer probe worker1 && gluster peer probe worker2
+
+#     - name: Crear el volumen
+#       shell: gluster volume create gv0 replica 3 manager:/data/brick/gv0 worker1:/data/brick/gv0 worker2:/data/brick/gv0 
+  
+#     - name: Set all_hosts_ips
+#       set_fact:
+#         all_hosts_ips: "{{ groups['all'] | map('extract', hostvars, 'ansible_host') | map('to_json') | join(', ') }}"
+
+#     - name: Restringir acceso al volumen
+#       shell: gluster volume set gfs auth.allow 10.0.2.15,10.0.2.16,10.0.2.17
+
+#     - name: Generar token de Docker Swarm
+#       shell: docker swarm init | head -n5 | tail -n1 | tr -s ' '
+#       register: swarmtoken
+
+    - name: Copiar Docker Compose
+      copy:
+        src: ./docker-compose.yml
+        dest: /root/docker-compose.yml
+        owner: root
+        group: root
+        mode: '0744'
+
+# - hosts: workers
+#   tasks:
+#     - name: Añadir workers a Docker Swarm
+#       shell: "{{ hostvars['10.0.2.15']['swarmtoken'].stdout}}"
+
+...
